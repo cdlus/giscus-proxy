@@ -2,15 +2,12 @@
 
 Minimal proxy for the public giscus widget so you can embed it from your own origin.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/OhvyYk)
-
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/cdlus/giscus-proxy)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/cdlus/giscus-proxy)
-
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/cdlus/giscus-proxy)
-
-[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/cdlus/giscus-proxy)
-
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/cdlus/giscus-proxy)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/cdlus/giscus-proxy)
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy/?template=https://github.com/cdlus/giscus-proxy)
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/cdlus/giscus-proxy&branch=main&name=giscus-proxy)
 
 ### Endpoints
 - `GET /widget` → `https://giscus.app/en/widget` (with optional replacements via `rep=`)
