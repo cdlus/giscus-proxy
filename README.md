@@ -2,12 +2,12 @@
 
 Minimal proxy for the public giscus widget so you can embed it from your own origin.
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/cdlus/giscus-proxy)
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/cdlus/giscus-proxy)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/cdlus/giscus-proxy)
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/cdlus/giscus-proxy)
-[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy/?template=https://github.com/cdlus/giscus-proxy)
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/cdlus/giscus-proxy&branch=main&name=giscus-proxy)
+<a href="https://railway.app/new/template?template=https://github.com/cdlus/giscus-proxy"><img src="https://railway.app/button.svg" alt="Deploy on Railway" height="32" /></a>
+<a href="https://render.com/deploy?repo=https://github.com/cdlus/giscus-proxy"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="32" /></a>
+<a href="https://vercel.com/new/clone?repository-url=https://github.com/cdlus/giscus-proxy"><img src="https://vercel.com/button" alt="Deploy with Vercel" height="32" /></a>
+<a href="https://app.netlify.com/start/deploy?repository=https://github.com/cdlus/giscus-proxy"><img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" height="32" /></a>
+<a href="https://heroku.com/deploy/?template=https://github.com/cdlus/giscus-proxy"><img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku" height="32" /></a>
+<a href="https://app.koyeb.com/deploy?type=git&repository=github.com/cdlus/giscus-proxy&branch=main&name=giscus-proxy"><img src="https://www.koyeb.com/static/images/deploy/button.svg" alt="Deploy to Koyeb" height="32" /></a>
 
 ### Endpoints
 - `GET /widget` → `https://giscus.app/en/widget` (with optional replacements via `rep=`)
