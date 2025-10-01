@@ -2,6 +2,9 @@
 
 Minimal proxy for the public giscus widget so you can embed it from your own origin.
 
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/new?template=https://github.com/cdlus/giscus-proxy)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/cdlus/giscus-proxy)
+
 ### Endpoints
 - `GET /widget` → `https://giscus.app/en/widget` (with optional replacements via `rep=`)
 - `GET /en/widget` → `https://giscus.app/en/widget` (alias)
