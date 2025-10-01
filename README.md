@@ -2,7 +2,7 @@
 
 Minimal proxy for the public giscus widget so you can embed it from your own origin.
 
-<a href="https://railway.app/new/template?template=https://github.com/cdlus/giscus-proxy"><img src="https://railway.app/button.svg" alt="Deploy on Railway" height="32" /></a>
+<a href="https://railway.com/deploy/OhvyYk"><img src="https://railway.app/button.svg" alt="Deploy on Railway" height="32" /></a>
 <a href="https://render.com/deploy?repo=https://github.com/cdlus/giscus-proxy"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="32" /></a>
 <a href="https://vercel.com/new/clone?repository-url=https://github.com/cdlus/giscus-proxy"><img src="https://vercel.com/button" alt="Deploy with Vercel" height="32" /></a>
 <a href="https://app.netlify.com/start/deploy?repository=https://github.com/cdlus/giscus-proxy"><img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" height="32" /></a>
