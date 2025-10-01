@@ -111,6 +111,24 @@ func parseMaxAge(h http.Header) (time.Duration, bool) {
 	return 0, false
 }
 
+// pretty logging helpers
+
+func fmtDur(d time.Duration) string {
+	if d < time.Second {
+		return fmt.Sprintf("%4dms", d.Milliseconds())
+	}
+	sec := float64(d) / float64(time.Second)
+	return fmt.Sprintf("%6.2fs", sec)
+}
+
+func logLine(kind, method, path string, status, bytes int, dur time.Duration, cacheState, target string) {
+	if cacheState == "" {
+		cacheState = "-"
+	}
+	log.Printf("%-6s method=%-4s status=%3d bytes=%8d dur=%9s cache=%-10s path=%s target=%s",
+		kind, method, status, bytes, fmtDur(dur), cacheState, path, target)
+}
+
 func writeCORS(h http.ResponseWriter) {
 	h.Header().Set("Access-Control-Allow-Origin", "*")
 	h.Header().Set("Vary", "Origin")
@@ -211,7 +229,7 @@ func handleWidget(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	var target string
 	defer func() {
-		log.Printf("widget %s %s -> %d (%dB) in %v target=%s", r.Method, r.URL.RequestURI(), sw.status, sw.written, time.Since(start), target)
+		logLine("widget", r.Method, r.URL.RequestURI(), sw.status, sw.written, time.Since(start), "", target)
 	}()
 	w = sw
 	if r.Method == http.MethodOptions {
@@ -294,7 +312,7 @@ func handlePassthrough(w http.ResponseWriter, r *http.Request) {
 	var target string
 	cacheState := "BYPASS"
 	defer func() {
-		log.Printf("pass %s %s -> %d (%dB) in %v target=%s cache=%s", r.Method, r.URL.RequestURI(), sw.status, sw.written, time.Since(start), target, cacheState)
+		logLine("pass", r.Method, r.URL.RequestURI(), sw.status, sw.written, time.Since(start), cacheState, target)
 	}()
 	w = sw
 
