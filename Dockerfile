@@ -7,15 +7,15 @@ RUN apk add --no-cache git ca-certificates && update-ca-certificates
 
 # Pre-cache go modules
 COPY go.mod ./
-RUN --mount=type=cache,target=/go/pkg/mod \
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
     go mod download
 
 # Copy source
 COPY . .
 
 # Build static binary
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
+    --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags='-s -w' -o /out/giscus-wrapper ./
 
