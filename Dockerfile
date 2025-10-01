@@ -13,7 +13,11 @@ RUN go mod download
 COPY . .
 
 # Build static binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+# Honors TARGETOS/TARGETARCH when provided (e.g., via buildx),
+# otherwise builds for the builder's native platform.
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 ${TARGETOS:+GOOS=$TARGETOS} ${TARGETARCH:+GOARCH=$TARGETARCH} \
     go build -ldflags='-s -w' -o /out/giscus-wrapper ./
 
 # -------- Runtime stage --------
