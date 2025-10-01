@@ -152,6 +152,59 @@ func getEnv(key, def string) string {
 	return v
 }
 
+func ensureURL(v string, defaultScheme string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return ""
+	}
+	if strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://") {
+		return v
+	}
+	if defaultScheme == "" {
+		defaultScheme = "https"
+	}
+	return defaultScheme + "://" + v
+}
+
+func derivePublicURL(bindAddr, host, port string) string {
+	if u := ensureURL(os.Getenv("PUBLIC_URL"), ""); u != "" {
+		return u
+	}
+	if u := ensureURL(os.Getenv("RAILWAY_PUBLIC_DOMAIN"), "https"); u != "" {
+		return u
+	}
+	if u := ensureURL(os.Getenv("RAILWAY_URL"), ""); u != "" {
+		return u
+	}
+
+	// Fallback to local composition
+	p := strings.TrimSpace(port)
+	h := strings.TrimSpace(host)
+	if p == "" {
+		b := bindAddr
+		if strings.HasPrefix(b, ":") {
+			p = strings.TrimPrefix(b, ":")
+		} else if i := strings.LastIndex(b, ":"); i != -1 {
+			p = b[i+1:]
+		}
+	}
+	if h == "" {
+		b := bindAddr
+		if strings.HasPrefix(b, ":") || b == "" {
+			h = "localhost"
+		} else if i := strings.LastIndex(b, ":"); i != -1 {
+			h = b[:i]
+		}
+	}
+	if h == "0.0.0.0" || h == "::" || h == "[::]" || h == "" {
+		h = "localhost"
+	}
+	if p == "" {
+		p = "8080"
+	}
+	return "http://" + h + ":" + p
+}
+
 func decompressIfNeeded(h http.Header, body io.ReadCloser) (io.ReadCloser, func(), error) {
 	enc := strings.ToLower(strings.TrimSpace(h.Get("Content-Encoding")))
 	switch enc {
@@ -420,6 +473,17 @@ func main() {
 		port = strings.TrimPrefix(port, ":")
 		addr = host + ":" + port
 	}
-	log.Printf("giscus wrapper listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	// ensure logs go to stdout so PaaS platforms don't mark them as errors
+	log.SetOutput(os.Stdout)
+
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ErrorLog:          log.New(os.Stdout, "", 0),
+	}
+
+	publicURL := derivePublicURL(addr, getEnv("HOST", ""), getEnv("PORT", ""))
+	log.Printf("giscus wrapper listening: bind=%s url=%s", addr, publicURL)
+	log.Fatal(srv.ListenAndServe())
 }
