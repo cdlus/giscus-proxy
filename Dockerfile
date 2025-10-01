@@ -13,12 +13,11 @@ RUN go mod download
 COPY . .
 
 # Build static binary
-# Honors TARGETOS/TARGETARCH when provided (e.g., via buildx),
-# otherwise builds for the builder's native platform.
+# Honors TARGETOS/TARGETARCH when provided (e.g., via buildx); defaults to linux/amd64.
 ARG TARGETOS
 ARG TARGETARCH
-RUN CGO_ENABLED=0 ${TARGETOS:+GOOS=$TARGETOS} ${TARGETARCH:+GOARCH=$TARGETARCH} \
-    go build -ldflags='-s -w' -o /out/giscus-wrapper ./
+ENV CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64}
+RUN go build -ldflags='-s -w' -o /out/giscus-wrapper ./
 
 # -------- Runtime stage --------
 FROM gcr.io/distroless/static:nonroot
