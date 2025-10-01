@@ -9,7 +9,9 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,6 +21,95 @@ const (
 )
 
 var httpClient = &http.Client{Timeout: 25 * time.Second}
+
+// ---------- logging helpers ----------
+
+type statusWriter struct {
+	http.ResponseWriter
+	status  int
+	written int
+}
+
+func (w *statusWriter) WriteHeader(code int) {
+	w.status = code
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *statusWriter) Write(p []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(p)
+	w.written += n
+	return n, err
+}
+
+// ---------- simple response cache ----------
+
+type cacheEntry struct {
+	status  int
+	headers http.Header
+	body    []byte
+	expires time.Time
+}
+
+type memoryCache struct {
+	mu         sync.RWMutex
+	data       map[string]cacheEntry
+	maxEntries int
+}
+
+func newMemoryCache(maxEntries int) *memoryCache {
+	return &memoryCache{data: make(map[string]cacheEntry), maxEntries: maxEntries}
+}
+
+func (c *memoryCache) Get(key string) (cacheEntry, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	v, ok := c.data[key]
+	if !ok {
+		return cacheEntry{}, false
+	}
+	if time.Now().After(v.expires) {
+		return cacheEntry{}, false
+	}
+	return v, true
+}
+
+func (c *memoryCache) Set(key string, val cacheEntry) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.data) >= c.maxEntries {
+		for k := range c.data { // naive eviction
+			delete(c.data, k)
+			break
+		}
+	}
+	c.data[key] = val
+}
+
+var respCache = newMemoryCache(512)
+
+var cacheHeaderKeys = []string{"Content-Type", "Content-Encoding", "Cache-Control", "ETag", "Last-Modified", "Vary"}
+
+func cacheKey(r *http.Request) string {
+	return r.Method + " " + r.URL.RequestURI() + " ae=" + strings.TrimSpace(r.Header.Get("Accept-Encoding"))
+}
+
+func parseMaxAge(h http.Header) (time.Duration, bool) {
+	cc := h.Get("Cache-Control")
+	if cc == "" {
+		return 0, false
+	}
+	parts := strings.Split(cc, ",")
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if strings.HasPrefix(strings.ToLower(p), "max-age=") {
+			v := strings.TrimSpace(p[len("max-age="):])
+			if secs, err := strconv.Atoi(v); err == nil && secs > 0 {
+				return time.Duration(secs) * time.Second, true
+			}
+		}
+	}
+	return 0, false
+}
 
 func writeCORS(h http.ResponseWriter) {
 	h.Header().Set("Access-Control-Allow-Origin", "*")
@@ -116,6 +207,13 @@ func widgetFooterSwap(b []byte) []byte {
 }
 
 func handleWidget(w http.ResponseWriter, r *http.Request) {
+	sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+	start := time.Now()
+	var target string
+	defer func() {
+		log.Printf("widget %s %s -> %d (%dB) in %v target=%s", r.Method, r.URL.RequestURI(), sw.status, sw.written, time.Since(start), target)
+	}()
+	w = sw
 	if r.Method == http.MethodOptions {
 		writeCORS(w)
 		w.WriteHeader(http.StatusNoContent)
@@ -141,7 +239,7 @@ func handleWidget(w http.ResponseWriter, r *http.Request) {
 			tq.Add(k, v)
 		}
 	}
-	target := upstreamOrigin + widgetPath
+	target = upstreamOrigin + widgetPath
 	if enc := tq.Encode(); enc != "" {
 		target += "?" + enc
 	}
@@ -191,6 +289,15 @@ func handleWidget(w http.ResponseWriter, r *http.Request) {
 
 // /api/* -> upstream passthrough (NO replacements)
 func handlePassthrough(w http.ResponseWriter, r *http.Request) {
+	sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+	start := time.Now()
+	var target string
+	cacheState := "BYPASS"
+	defer func() {
+		log.Printf("pass %s %s -> %d (%dB) in %v target=%s cache=%s", r.Method, r.URL.RequestURI(), sw.status, sw.written, time.Since(start), target, cacheState)
+	}()
+	w = sw
+
 	if r.Method == http.MethodOptions {
 		writeCORS(w)
 		w.WriteHeader(http.StatusNoContent)
@@ -202,9 +309,26 @@ func handlePassthrough(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build upstream URL, forwarding path and query as-is
-	target := upstreamOrigin + r.URL.Path
+	target = upstreamOrigin + r.URL.Path
 	if raw := r.URL.RawQuery; raw != "" {
 		target += "?" + raw
+	}
+
+	// Simple in-memory cache for GET/HEAD of uncompressed responses
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		if ent, ok := respCache.Get(cacheKey(r)); ok {
+			for _, k := range cacheHeaderKeys {
+				if v := ent.headers.Get(k); v != "" {
+					w.Header().Set(k, v)
+				}
+			}
+			w.WriteHeader(ent.status)
+			if r.Method == http.MethodGet {
+				_, _ = w.Write(ent.body)
+			}
+			cacheState = "HIT"
+			return
+		}
 	}
 
 	req, err := http.NewRequest(http.MethodGet, target, nil)
@@ -212,7 +336,6 @@ func handlePassthrough(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to build upstream request", http.StatusInternalServerError)
 		return
 	}
-	// Pass client's encodings through since we won't modify the body here
 	if ae := r.Header.Get("Accept-Encoding"); ae != "" {
 		req.Header.Set("Accept-Encoding", ae)
 	}
@@ -227,8 +350,37 @@ func handlePassthrough(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	writeCORS(w)
-	copyIf(w.Header(), resp.Header, "Content-Type", "Content-Encoding", "Cache-Control", "ETag", "Last-Modified", "Vary")
 
+	// Attempt cacheable path for GET when body is not compressed
+	enc := strings.ToLower(strings.TrimSpace(resp.Header.Get("Content-Encoding")))
+	if r.Method == http.MethodGet && (enc == "" || enc == "identity") && resp.StatusCode == http.StatusOK {
+		bin, err := io.ReadAll(resp.Body)
+		if err == nil {
+			copyIf(w.Header(), resp.Header, cacheHeaderKeys...)
+			w.WriteHeader(resp.StatusCode)
+			_, _ = w.Write(bin)
+
+			if ttl, ok := parseMaxAge(resp.Header); ok {
+				h := http.Header{}
+				for _, k := range cacheHeaderKeys {
+					if v := resp.Header.Get(k); v != "" {
+						h.Set(k, v)
+					}
+				}
+				respCache.Set(cacheKey(r), cacheEntry{status: resp.StatusCode, headers: h, body: bin, expires: time.Now().Add(ttl)})
+				cacheState = "MISS:cached"
+				return
+			}
+		}
+		copyIf(w.Header(), resp.Header, cacheHeaderKeys...)
+		w.WriteHeader(resp.StatusCode)
+		_, _ = w.Write(bin)
+		cacheState = "MISS"
+		return
+	}
+
+	// Non-cacheable path or HEAD/other methods: stream
+	copyIf(w.Header(), resp.Header, cacheHeaderKeys...)
 	w.WriteHeader(resp.StatusCode)
 	if r.Method != http.MethodHead {
 		_, _ = io.Copy(w, resp.Body)
