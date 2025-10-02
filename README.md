@@ -22,9 +22,9 @@ Minimal proxy for the public giscus widget so you can embed it from your own ori
 
 ## Run locally
 ```bash
-go run .
+go run ./cmd/giscus-proxy
 # or with custom port
-PORT=9000 go run .
+PORT=9000 go run ./cmd/giscus-proxy
 ```
 
 ---
