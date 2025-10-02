@@ -20,6 +20,8 @@ func main() {
 	})
 
 	handler := p.Handler()
+	mux := http.NewServeMux()
+	p.Register(mux)
 
 	addr := strings.TrimSpace(os.Getenv("ADDR"))
 	if addr == "" {
@@ -34,6 +36,7 @@ func main() {
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           handler,
+		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 		ErrorLog:          log.New(os.Stdout, "", 0),
 	}
