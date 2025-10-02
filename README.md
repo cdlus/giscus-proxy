@@ -22,9 +22,9 @@ Minimal proxy for the public giscus widget so you can embed it from your own ori
 
 ## Run locally
 ```bash
-go run .
+go run ./cmd/giscus-proxy
 # or with custom port
-PORT=9000 go run .
+PORT=9000 go run ./cmd/giscus-proxy
 ```
 
 ---
@@ -54,6 +54,20 @@ docker run --rm -p 9000:9000 -e PORT=9000 giscus-proxy:latest
 4) Expose the service; Railway gives you a public URL.
 
 Health check path: `/widget`.
+
+---
+
+## Deploy to Vercel
+
+The repository ships with a serverless handler under `api/index.go` and a
+`vercel.json` rewrite that forwards every request to it. Deploying through the
+"Deploy with Vercel" button or via `vercel deploy` builds a Go Serverless
+Function, so no Docker support is required. Once deployed, the instance exposes
+the same routes described above.
+
+You can set `HOST`, `PORT`, or `ADDR` environment variables if you want to run
+the binary locally with `vercel dev`, but they are not required for production
+deployments on Vercel.
 
 ---
 
