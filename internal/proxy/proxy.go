@@ -77,6 +77,13 @@ func (p *Proxy) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/", p.handlePassthrough)
 }
 
+// Handler returns a ready-to-use HTTP handler that serves the proxy.
+func (p *Proxy) Handler() http.Handler {
+	mux := http.NewServeMux()
+	p.Register(mux)
+	return mux
+}
+
 func (p *Proxy) logf(format string, args ...any) {
 	if p.logger == nil {
 		log.Printf(format, args...)

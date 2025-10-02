@@ -57,6 +57,20 @@ Health check path: `/widget`.
 
 ---
 
+## Deploy to Vercel
+
+The repository ships with a serverless handler under `api/index.go` and a
+`vercel.json` rewrite that forwards every request to it. Deploying through the
+"Deploy with Vercel" button or via `vercel deploy` builds a Go Serverless
+Function, so no Docker support is required. Once deployed, the instance exposes
+the same routes described above.
+
+You can set `HOST`, `PORT`, or `ADDR` environment variables if you want to run
+the binary locally with `vercel dev`, but they are not required for production
+deployments on Vercel.
+
+---
+
 ## Deploy to a generic VPS
 
 ### Option A: Docker on VPS
