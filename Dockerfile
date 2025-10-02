@@ -1,3 +1,4 @@
+# -------- Build stage --------
 FROM golang:1.25-alpine AS builder
 
 WORKDIR /src
@@ -19,18 +20,21 @@ ARG TARGETARCH
 ENV CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64}
 RUN go build -ldflags='-s -w' -o /out/giscus-wrapper ./
 
+
 # -------- Runtime stage --------
 FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /
+
+# Copy CA certs and binary
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /out/giscus-wrapper /giscus-wrapper
 
+# Run as non-root for security
 USER nonroot:nonroot
 
-ENV HOST=0.0.0.0
-ENV PORT=8080
+# Tell Docker/Vercel the app can serve on 8080 (just metadata)
+EXPOSE 8080
 
-
+# Start the binary
 ENTRYPOINT ["/giscus-wrapper"]
-
